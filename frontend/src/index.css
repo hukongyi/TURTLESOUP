@@ -503,8 +503,10 @@ input[type="text"]:focus {
   }
 }
 
-/* 移动端适配 */
-/* --- 粘贴到 src/index.css 的最底部 --- */
+/* 默认隐藏移动端专属按钮 */
+.mobile-toggle-btn {
+  display: none;
+}
 
 /* =========================================
    移动端深度适配 (Mobile Responsive)
@@ -515,180 +517,324 @@ input[type="text"]:focus {
   #root,
   .app-container {
     height: 100dvh;
-    /* 使用动态高度，适配手机浏览器地址栏伸缩 */
+    /* 适配移动端浏览器地址栏 */
     overflow: hidden;
-    /* 禁止整体页面滚动，内容内部滚动 */
   }
 
   /* --- 2. 菜单页 (Menu) --- */
   .menu-container {
     padding: 20px 15px;
-    /* 减小内边距 */
-    overflow-y: auto;
-    /* 允许菜单上下滚动 */
     height: 100%;
+    overflow-y: auto;
     justify-content: flex-start;
-    /* 内容顶对齐 */
   }
 
   .menu-title {
     font-size: 2rem;
-    /* 标题变小 */
     margin-top: 20px;
   }
 
-  .menu-header {
-    margin-bottom: 20px;
-  }
-
-  /* 下拉框适配 */
   .menu-header select {
-    min-width: 100% !important;
-    /* 宽度填满手机屏幕 */
     width: 100%;
-    font-size: 0.85rem;
+    min-width: 0;
   }
 
-  /* 只有1列卡片 */
+  /* 修复下拉框过宽 */
+
   .cards-grid {
     grid-template-columns: 1fr;
     gap: 15px;
-    padding-bottom: 40px;
-    /* 防止底部被遮挡 */
+    padding-bottom: 60px;
   }
 
   .menu-card {
     height: auto;
-    /* 高度自适应 */
-    min-height: 140px;
+    min-height: 120px;
     padding: 20px;
   }
 
-  /* 手机上没有 hover，强制显示 PLAY 文字 */
-  .menu-card::after {
-    opacity: 1;
-    transform: translateX(0);
-    content: "点击开始";
-    font-size: 0.7rem;
-    bottom: 15px;
-    right: 15px;
-  }
+  /* --- 3. 游戏页 (Game) 布局重构 --- */
 
-  /* --- 3. 游戏页 (Game) --- */
   .game-container {
     flex-direction: column;
-    /* 改为上下布局 */
-    padding: 10px;
-    gap: 10px;
+    padding: 0;
+    gap: 0;
     height: 100%;
     width: 100%;
+    position: relative;
+    /* 为绝对定位做参照 */
   }
 
-  /* 上半部分：题目卡片 (占屏幕高度的 35%) */
+  /* A. 汤面区域：改为全屏模态框 (Modal Mode) */
   .puzzle-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    /* 盖在聊天上面 */
+    background: #0f172a;
+    /* 深色背景，防止透视 */
+    padding: 20px;
+    overflow-y: auto;
+
+    /* 默认隐藏：向下平移出屏幕 */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 解决 flex 布局冲突 */
     flex: none;
-    height: 35%;
-    /* 固定高度比例 */
     max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  /* 激活状态：滑入屏幕 */
+  .puzzle-section.mobile-show {
+    transform: translateY(0);
   }
 
   .puzzle-card {
-    height: 100%;
-    /* 填满容器 */
-    padding: 15px;
-    border-radius: 16px;
     box-shadow: none;
-    /* 减少阴影提升性能 */
-  }
-
-  .puzzle-title {
-    font-size: 1.1rem;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-  }
-
-  .puzzle-content {
-    font-size: 0.95rem;
-    /* 字体改小 */
-    line-height: 1.5;
-    overflow-y: auto;
-    /* 允许题目内部滚动 */
-  }
-
-  /* 隐藏非必要的监控面板以节省空间，或者将其缩小 */
-  .puzzle-section>div:last-child {
-    padding: 5px;
-    font-size: 0.7rem;
-    /* display: none; */
-    /* 手机端暂时隐藏 Token 监控，太占地儿 */
-    /* 如果想保留，可以改为 padding: 5px; font-size: 0.7rem; */
-  }
-
-  /* 下半部分：聊天区域 (占剩余空间) */
-  .chat-section {
-    flex: 1;
-    /* 自动占据剩余高度 */
     height: auto;
-    border-radius: 16px;
+    flex-shrink: 0;
+  }
+
+  /* B. 聊天区域：全屏显示 */
+  .chat-section {
+    height: 100%;
+    width: 100%;
+    border-radius: 0;
+    border: none;
     display: flex;
     flex-direction: column;
   }
 
-  .chat-header {
-    padding: 10px 15px;
-    font-size: 0.9rem;
-    min-height: 40px;
-  }
-
   .chat-messages {
-    padding: 10px;
-    gap: 10px;
+    padding-bottom: 20px;
   }
 
-  .message {
-    font-size: 0.9rem;
-    max-width: 90%;
-    /* 气泡宽一点 */
-    padding: 10px 14px;
+  /* C. 移动端专属按钮样式 */
+  .mobile-toggle-btn {
+    display: block;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+    transition: background 0.2s;
   }
 
-  /* 输入框区域 */
-  .chat-input-area {
-    padding: 10px;
-    background: rgba(30, 41, 59, 0.95);
-    /* 加深背景防透 */
+  /* 头部“查看汤面”按钮 */
+  .open-puzzle {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--accent);
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
-  input[type="text"] {
-    padding: 10px 15px;
-    font-size: 16px;
-    /* 防止 iOS 缩放输入框 */
+  /* 汤面里的“关闭”按钮 */
+  .close-puzzle {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    align-self: flex-end;
+    /* 放在右上角 */
+    margin-bottom: -10px;
+    z-index: 10;
   }
 
-  .btn-send {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* --- 4. 登录/注册页 (Auth) --- */
+  /* --- 4. 认证页与弹窗 --- */
   .auth-card {
     width: 90%;
-    /* 宽度适应屏幕 */
-    padding: 25px;
-    margin-top: -50px;
-    /*稍微往上提一点 */
+    padding: 30px 20px;
   }
 
-  .auth-title {
-    font-size: 1.5rem;
-  }
-
-  /* --- 5. 弹窗适配 --- */
   .modal-content {
     width: 95%;
-    max-height: 80vh;
-    padding: 20px;
+    max-height: 85vh;
   }
+}
+
+/* --- 1. 全局容器调整 --- */
+#root,
+.app-container {
+  height: 100dvh;
+  /* 使用动态高度，适配手机浏览器地址栏伸缩 */
+  overflow: hidden;
+  /* 禁止整体页面滚动，内容内部滚动 */
+}
+
+/* --- 2. 菜单页 (Menu) --- */
+.menu-container {
+  padding: 20px 15px;
+  /* 减小内边距 */
+  overflow-y: auto;
+  /* 允许菜单上下滚动 */
+  height: 100%;
+  justify-content: flex-start;
+  /* 内容顶对齐 */
+}
+
+.menu-title {
+  font-size: 2rem;
+  /* 标题变小 */
+  margin-top: 20px;
+}
+
+.menu-header {
+  margin-bottom: 20px;
+}
+
+/* 下拉框适配 */
+.menu-header select {
+  min-width: 100% !important;
+  /* 宽度填满手机屏幕 */
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+/* 只有1列卡片 */
+.cards-grid {
+  grid-template-columns: 1fr;
+  gap: 15px;
+  padding-bottom: 40px;
+  /* 防止底部被遮挡 */
+}
+
+.menu-card {
+  height: auto;
+  /* 高度自适应 */
+  min-height: 140px;
+  padding: 20px;
+}
+
+/* 手机上没有 hover，强制显示 PLAY 文字 */
+.menu-card::after {
+  opacity: 1;
+  transform: translateX(0);
+  content: "点击开始";
+  font-size: 0.7rem;
+  bottom: 15px;
+  right: 15px;
+}
+
+/* --- 3. 游戏页 (Game) --- */
+.game-container {
+  flex-direction: column;
+  /* 改为上下布局 */
+  padding: 10px;
+  gap: 10px;
+  height: 100%;
+  width: 100%;
+}
+
+/* 上半部分：题目卡片 (占屏幕高度的 35%) */
+.puzzle-section {
+  flex: none;
+  height: 35%;
+  /* 固定高度比例 */
+  max-width: none;
+}
+
+.puzzle-card {
+  height: 100%;
+  /* 填满容器 */
+  padding: 15px;
+  border-radius: 16px;
+  box-shadow: none;
+  /* 减少阴影提升性能 */
+}
+
+.puzzle-title {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.puzzle-content {
+  font-size: 0.95rem;
+  /* 字体改小 */
+  line-height: 1.5;
+  overflow-y: auto;
+  /* 允许题目内部滚动 */
+}
+
+/* 隐藏非必要的监控面板以节省空间，或者将其缩小 */
+.puzzle-section>div:last-child {
+  padding: 5px;
+  font-size: 0.7rem;
+  /* display: none; */
+  /* 手机端暂时隐藏 Token 监控，太占地儿 */
+  /* 如果想保留，可以改为 padding: 5px; font-size: 0.7rem; */
+}
+
+/* 下半部分：聊天区域 (占剩余空间) */
+.chat-section {
+  flex: 1;
+  /* 自动占据剩余高度 */
+  height: auto;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  padding: 10px 15px;
+  font-size: 0.9rem;
+  min-height: 40px;
+}
+
+.chat-messages {
+  padding: 10px;
+  gap: 10px;
+}
+
+.message {
+  font-size: 0.9rem;
+  max-width: 90%;
+  /* 气泡宽一点 */
+  padding: 10px 14px;
+}
+
+/* 输入框区域 */
+.chat-input-area {
+  padding: 10px;
+  background: rgba(30, 41, 59, 0.95);
+  /* 加深背景防透 */
+}
+
+input[type="text"] {
+  padding: 10px 15px;
+  font-size: 16px;
+  /* 防止 iOS 缩放输入框 */
+}
+
+.btn-send {
+  width: 40px;
+  height: 40px;
+}
+
+/* --- 4. 登录/注册页 (Auth) --- */
+.auth-card {
+  width: 90%;
+  /* 宽度适应屏幕 */
+  padding: 25px;
+  margin-top: -50px;
+  /*稍微往上提一点 */
+}
+
+.auth-title {
+  font-size: 1.5rem;
+}
+
+/* --- 5. 弹窗适配 --- */
+.modal-content {
+  width: 95%;
+  max-height: 80vh;
+  padding: 20px;
+}
 }
 
 @media (max-width: 600px) {
