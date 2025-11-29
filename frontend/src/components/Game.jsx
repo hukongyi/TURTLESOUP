@@ -10,7 +10,7 @@ function Game({ puzzle, onBack, model }) {
     const [showAnswer, setShowAnswer] = useState(false);
     const [turnCount, setTurnCount] = useState(0);
 
-    // --- 新增：控制手机端汤面面板的显示状态 ---
+    // 控制手机端汤面面板的显示状态
     const [showMobilePuzzle, setShowMobilePuzzle] = useState(false);
 
     const [stats, setStats] = useState({
@@ -22,22 +22,22 @@ function Game({ puzzle, onBack, model }) {
     const threadIdRef = useRef(uuidv4());
     const chatEndRef = useRef(null);
 
-    // ... (中间的 useEffect 和 handleSend 逻辑保持不变，不需要动) ...
-    // 初始化游戏 useEffect ...
-    // 自动滚动 useEffect ...
-    // handleSend 函数 ...
-
+    // 自动滚动到底部
     useEffect(() => {
-        // 1. 添加欢迎语... (保持原有逻辑)
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    // 初始化游戏
+    useEffect(() => {
+        // 1. 设置欢迎语
         setMessages([{
             role: 'ai',
             content: `你好！我是本局的海龟汤主持人。\n\n**当前接入**: \`${model}\`\n\n请阅读左侧的汤面，然后向我提问。卡关时可以向我索要提示。猜出真相了请以"真相："开头描述你的复盘。`
         }]);
-        // ... (保持原有逻辑)
         setStats({ lastTokens: 0, lastCost: 0.0, totalCost: 0.0 });
         setTurnCount(0);
 
-        // ... fetch /init 逻辑保持不变 ...
+        // 2. 调用后端初始化
         fetch('/init', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -51,14 +51,15 @@ function Game({ puzzle, onBack, model }) {
 
     }, [puzzle, model]);
 
-    // ... (handleSend 保持不变) ...
     const handleSend = async () => {
-        // ... (原代码保持不变) ...
         if (!input.trim() || isLoading) return;
         const userText = input.trim();
+
+        // 立即显示用户消息
         setMessages(prev => [...prev, { role: 'user', content: userText }]);
         setInput('');
         setIsLoading(true);
+
         try {
             const res = await fetch('/chat', {
                 method: 'POST',
@@ -69,8 +70,13 @@ function Game({ puzzle, onBack, model }) {
                 })
             });
             const data = await res.json();
+
+            // 显示 AI 回复
             setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
+
             if (data.turn_count) setTurnCount(data.turn_count);
+
+            // 更新 Token 统计
             if (data.cost_data) {
                 setStats(prev => ({
                     lastTokens: data.cost_data.tokens,
@@ -88,11 +94,10 @@ function Game({ puzzle, onBack, model }) {
     return (
         <div className="game-container game-active">
 
-            {/* --- 左侧：题目区域 --- */}
-            {/* 修改点 1: 添加 mobile-show 类名逻辑 */}
+            {/* --- 左侧 (移动端为全屏模态框)：题目区域 --- */}
             <div className={`puzzle-section ${showMobilePuzzle ? 'mobile-show' : ''}`}>
 
-                {/* 修改点 2: 手机端专属的关闭按钮 */}
+                {/* 移动端汤面内的关闭按钮 */}
                 <button
                     className="mobile-toggle-btn close-puzzle"
                     onClick={() => setShowMobilePuzzle(false)}
@@ -101,6 +106,7 @@ function Game({ puzzle, onBack, model }) {
                 </button>
 
                 <div className="puzzle-card">
+                    {/* PC端显示的返回按钮 (移动端通过CSS隐藏) */}
                     <div className="controls" style={{ marginTop: 0, marginBottom: 10 }}>
                         <button className="btn-back" onClick={onBack}>← 返回大厅</button>
                     </div>
@@ -122,7 +128,7 @@ function Game({ puzzle, onBack, model }) {
                     </div>
                 </div>
 
-                {/* 监控面板保持不变 */}
+                {/* 监控面板 */}
                 <div style={{
                     marginTop: '20px',
                     padding: '20px',
@@ -174,15 +180,26 @@ function Game({ puzzle, onBack, model }) {
             {/* --- 右侧：聊天区域 --- */}
             <div className="chat-section">
                 <div className="chat-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {/* 修改点 3: 手机端专属的打开汤面按钮 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+
+                        {/* 1. [新增] 移动端专属：退出按钮 (红色) */}
+                        <button
+                            className="mobile-toggle-btn mobile-back"
+                            onClick={onBack}
+                        >
+                            ← 退出
+                        </button>
+
+                        {/* 2. 移动端专属：查看汤面按钮 (黄色) */}
                         <button
                             className="mobile-toggle-btn open-puzzle"
                             onClick={() => setShowMobilePuzzle(true)}
                         >
-                            📜 查看汤面
+                            📜 汤面
                         </button>
-                        <span>主持人大脑</span>
+
+                        {/* PC端显示的标题，移动端隐藏 */}
+                        <span className="header-title-text">主持人大脑</span>
                     </div>
                     <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>第 {turnCount} 轮</span>
                 </div>

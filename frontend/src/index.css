@@ -520,44 +520,87 @@ input[type="text"]:focus {
   #root,
   .app-container {
     height: 100dvh;
-    /* 适配移动端浏览器地址栏 */
+    /* 适配移动端浏览器动态地址栏 */
     overflow: hidden;
+    /* 禁止整体滚动，内容内部滚动 */
   }
 
   /* --- 2. 菜单页 (Menu) --- */
   .menu-container {
-    padding: 20px 15px;
+    padding: 15px;
     height: 100%;
     overflow-y: auto;
+    /* 允许垂直滚动 */
     justify-content: flex-start;
+    /* 内容顶对齐 */
   }
 
   .menu-title {
     font-size: 2rem;
-    margin-top: 20px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  .menu-subtitle {
+    margin-bottom: 20px;
   }
 
   .menu-header select {
     width: 100%;
     min-width: 0;
+    /* 修复 flex item 溢出 */
+    font-size: 0.85rem;
   }
 
-  /* 修复下拉框过宽 */
+  /* 核心修改：菜单按钮组改为三列网格，解决过宽问题 */
+  .menu-actions {
+    display: grid !important;
+    /* 强制覆盖 React 的内联 flex */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3列等宽 */
+    gap: 8px;
+    width: 100%;
+    margin-top: 15px !important;
+  }
 
+  .refresh-btn {
+    width: 100%;
+    margin: 0;
+    padding: 8px 2px;
+    font-size: 0.75rem;
+    /* 缩小字体 */
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    /* 图标文字上下排列，或者保持row看喜好，这里推荐row紧凑点 */
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    /* 防止文字换行 */
+  }
+
+  .refresh-btn span {
+    margin-right: 2px;
+    font-size: 1rem;
+  }
+
+  /* 题目卡片列表 */
   .cards-grid {
     grid-template-columns: 1fr;
+    /* 单列显示 */
     gap: 15px;
     padding-bottom: 60px;
+    /* 给底部留空 */
+    width: 100%;
   }
 
   .menu-card {
     height: auto;
-    min-height: 120px;
+    min-height: 100px;
     padding: 20px;
   }
 
   /* --- 3. 游戏页 (Game) 布局重构 --- */
-
   .game-container {
     flex-direction: column;
     padding: 0;
@@ -565,10 +608,9 @@ input[type="text"]:focus {
     height: 100%;
     width: 100%;
     position: relative;
-    /* 为绝对定位做参照 */
   }
 
-  /* A. 汤面区域：改为全屏模态框 (Modal Mode) */
+  /* A. 汤面区域：全屏模态框 (Modal Mode) */
   .puzzle-section {
     position: absolute;
     top: 0;
@@ -578,7 +620,7 @@ input[type="text"]:focus {
     z-index: 1000;
     /* 盖在聊天上面 */
     background: #0f172a;
-    /* 深色背景，防止透视 */
+    /* 深色背景防止透视 */
     padding: 20px;
     overflow-y: auto;
 
@@ -586,12 +628,10 @@ input[type="text"]:focus {
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* 解决 flex 布局冲突 */
     flex: none;
     max-width: none;
     display: flex;
     flex-direction: column;
-    gap: 15px;
   }
 
   /* 激活状态：滑入屏幕 */
@@ -603,6 +643,12 @@ input[type="text"]:focus {
     box-shadow: none;
     height: auto;
     flex-shrink: 0;
+    padding: 20px;
+  }
+
+  /* 隐藏 PC 端的大按钮区域 */
+  .puzzle-section .controls .btn-back {
+    display: none;
   }
 
   /* B. 聊天区域：全屏显示 */
@@ -615,37 +661,69 @@ input[type="text"]:focus {
     flex-direction: column;
   }
 
+  .chat-header {
+    padding: 8px 12px;
+    /* 减小头部高度 */
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  /* 隐藏标题文字 "主持人大脑"，给按钮腾空间 */
+  .header-title-text {
+    display: none;
+  }
+
   .chat-messages {
+    padding: 15px;
     padding-bottom: 20px;
+  }
+
+  .message {
+    max-width: 90%;
+    /* 气泡宽一点 */
+    font-size: 0.9rem;
+  }
+
+  .chat-input-area {
+    padding: 10px;
   }
 
   /* C. 移动端专属按钮样式 */
   .mobile-toggle-btn {
-    display: block;
-    font-size: 0.85rem;
+    display: flex !important;
+    /* 强制显示 */
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
     padding: 6px 12px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
     border: none;
-    transition: background 0.2s;
+    height: 34px;
+    white-space: nowrap;
   }
 
-  /* 头部“查看汤面”按钮 */
+  /* 顶部“退出”按钮 (红色) */
+  .mobile-back {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    margin-right: 8px;
+  }
+
+  /* 顶部“查看汤面”按钮 (黄色) */
   .open-puzzle {
-    background: rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.15);
     color: var(--accent);
     border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
-  /* 汤面里的“关闭”按钮 */
+  /* 汤面模态框里的“关闭”按钮 */
   .close-puzzle {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     align-self: flex-end;
-    /* 放在右上角 */
-    margin-bottom: -10px;
-    z-index: 10;
+    margin-bottom: 10px;
   }
 
   /* --- 4. 认证页与弹窗 --- */
@@ -657,8 +735,10 @@ input[type="text"]:focus {
   .modal-content {
     width: 95%;
     max-height: 85vh;
+    padding: 20px;
   }
 }
+
 
 @media (max-width: 600px) {
   .cards-grid {
