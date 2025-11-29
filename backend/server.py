@@ -452,17 +452,6 @@ app_graph = workflow.compile(checkpointer=memory)
 # --- 5. API 接口 ---
 
 
-class InitRequest(BaseModel):
-    thread_id: str
-    story: str
-    truth: str
-
-
-class ChatRequest(BaseModel):
-    thread_id: str
-    message: str
-
-
 @app.post("/register", status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     # A. 校验用户是否存在
