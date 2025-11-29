@@ -10,6 +10,7 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
     }, []);
 
     const refreshPuzzles = () => {
+        // 随机打乱并取前6个
         const shuffled = [...PUZZLE_DATA].sort(() => 0.5 - Math.random());
         setPuzzles(shuffled.slice(0, 6));
     };
@@ -37,8 +38,11 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                         border: '1px solid rgba(255,255,255,0.2)',
                         color: '#ddd',
                         borderRadius: '8px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'background 0.3s'
                     }}
+                    onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+                    onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
                 >
                     退出
                 </button>
@@ -48,7 +52,7 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                 <div className="menu-title">TURTLE SOUP</div>
                 <div className="menu-subtitle">海龟汤 v0.0.1</div>
 
-                {/* --- 模型选择区域 --- */}
+                {/* --- 模型选择区域 (包含价格显示) --- */}
                 <div style={{ marginTop: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', animation: 'fadeIn 1s' }}>
                     <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', letterSpacing: '1px' }}>
                         NEURAL LINK:
@@ -68,13 +72,21 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                                 cursor: 'pointer',
                                 fontSize: '0.95rem',
                                 appearance: 'none', // 移除默认箭头
-                                minWidth: '220px',
-                                boxShadow: '0 0 10px var(--accent-glow)'
+                                minWidth: '350px',  // 加宽以容纳价格文字
+                                boxShadow: '0 0 10px var(--accent-glow)',
+                                fontFamily: 'monospace' // 使用等宽字体让价格对齐更好看
                             }}
                         >
                             {AVAILABLE_MODELS.map(m => (
-                                <option key={m.id} value={m.id} style={{ background: '#1e293b', color: '#e2e8f0' }}>
-                                    {m.name} {m.isNew ? '(NEW)' : ''}
+                                <option
+                                    key={m.id}
+                                    value={m.id}
+                                    style={{ background: '#1e293b', color: '#e2e8f0' }}
+                                >
+                                    {/* 格式: 名称 [标签] - $输入/$输出 */}
+                                    {m.name}
+                                    {m.isNew ? ' (NEW)' : ''}
+                                    {m.cost ? ` — $${m.cost.in}/$${m.cost.out}` : ''}
                                 </option>
                             ))}
                         </select>

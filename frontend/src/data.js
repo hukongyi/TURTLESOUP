@@ -1,16 +1,51 @@
 export const AVAILABLE_MODELS = [
-    // DeepSeek 系列 (通常性价比极高)
-    { id: "deepseek-ai/DeepSeek-V3.2-Exp", name: "DeepSeek V3.2 Exp (超高性价比)", isNew: true },
-    { id: "deepseek-ai/DeepSeek-V3.2-Exp-thinking", name: "DeepSeek V3.2 Thinking (深度思考链)", isNew: true },
+    // DeepSeek 系列
+    {
+        id: "deepseek-ai/DeepSeek-V3.2-Exp",
+        name: "DeepSeek V3.2 Exp (超高性价比/无思维链)",
+        isNew: true,
+        cost: { in: 0.2, out: 0.3 }
+    },
+    {
+        id: "deepseek-ai/DeepSeek-V3.2-Exp-thinking",
+        name: "DeepSeek V3.2 Thinking (深度思考)",
+        isNew: true,
+        cost: { in: 0.2, out: 0.3 }
+    },
 
     // Gemini 系列
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash (极速/低价)", isNew: false },
-    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro (均衡强力)", isNew: false },
-    { id: "gemini-3-pro-preview", name: "Gemini 3 Pro (下一代预览)", isNew: true },
+    {
+        id: "gemini-2.5-flash",
+        name: "Gemini 2.5 Flash (快速)",
+        isNew: false,
+        cost: { in: 0.3, out: 2.52 }
+    },
+    {
+        id: "gemini-2.5-pro",
+        name: "Gemini 2.5 Pro (均衡)",
+        isNew: false,
+        cost: { in: 1.25, out: 10.0 }
+    },
+    {
+        id: "gemini-3-pro-preview",
+        name: "Gemini 3 Pro (最强)",
+        isNew: true,
+        cost: { in: 2.0, out: 12.0 }
+    },
 
     // GPT 系列
-    { id: "gpt-4o", name: "GPT-4o (稳定旗舰)", isNew: false },
-    { id: "gpt-5.1", name: "GPT-5.1 (最新 SOTA)", isNew: true },
+    {
+        id: "gpt-4o",
+        name: "GPT-4o (经典)",
+        isNew: false,
+        cost: { in: 5.0, out: 20.0 }
+    },
+    {
+        id: "gpt-5.1",
+        name: "GPT-5.1 (最新 GPT)",
+        isNew: true,
+        cost: { in: 2.5, out: 20.0 }
+    },
 ];
 
 
