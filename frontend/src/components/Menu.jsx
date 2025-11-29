@@ -1,29 +1,35 @@
 // File: frontend/src/components/Menu.jsx
 import { useState, useEffect } from 'react';
 import { PUZZLE_DATA, AVAILABLE_MODELS } from '../data';
+import UploadModal from './UploadModal'; // 导入新创建的上传组件
 
 function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
     const [puzzles, setPuzzles] = useState([]);
+    const [showUpload, setShowUpload] = useState(false); // 控制上传弹窗显示状态
 
+    // 初始化时加载题目
     useEffect(() => {
         refreshPuzzles();
     }, []);
 
+    // 随机刷新题目逻辑
     const refreshPuzzles = () => {
-        // 随机打乱并取前6个
+        // 随机打乱并取前6个，保持界面整洁
         const shuffled = [...PUZZLE_DATA].sort(() => 0.5 - Math.random());
         setPuzzles(shuffled.slice(0, 6));
     };
 
+    // 显示所有题目
     const handleViewAll = () => setPuzzles(PUZZLE_DATA);
 
+    // 打开上传弹窗
     const handleUpload = () => {
-        alert(`侦测到用户 [${user.username}] 尝试上传数据。\n后端上行链路尚未建立。`);
+        setShowUpload(true);
     };
 
     return (
         <div className="menu-container">
-            {/* 用户状态栏 */}
+            {/* --- 右上角用户信息栏 --- */}
             <div style={{ position: 'absolute', top: '30px', right: '30px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ color: 'var(--accent)', fontSize: '0.9rem', fontWeight: 'bold' }}>AGENT</div>
@@ -48,6 +54,7 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                 </button>
             </div>
 
+            {/* --- 页面头部 --- */}
             <header className="menu-header">
                 <div className="menu-title">TURTLE SOUP</div>
                 <div className="menu-subtitle">海龟汤 v0.0.1</div>
@@ -97,6 +104,7 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                     </div>
                 </div>
 
+                {/* --- 操作按钮区域 --- */}
                 <div className="menu-actions" style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px' }}>
                     <button className="refresh-btn" onClick={refreshPuzzles}>
                         <span>↻</span> 换一批
@@ -110,6 +118,7 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                 </div>
             </header>
 
+            {/* --- 题目卡片网格 --- */}
             <div className="cards-grid">
                 {puzzles.map((p, index) => (
                     <div key={index} className="menu-card" onClick={() => onStartGame(p)}>
@@ -119,9 +128,18 @@ function Menu({ onStartGame, user, onLogout, selectedModel, onSelectModel }) {
                 ))}
             </div>
 
+            {/* --- 底部状态栏 --- */}
             <div style={{ textAlign: 'center', marginTop: '30px', color: '#666', fontSize: '0.8rem' }}>
                 SYSTEM STATUS: ONLINE | {puzzles.length} ENTRIES LOADED
             </div>
+
+            {/* --- 上传弹窗组件 (条件渲染) --- */}
+            {showUpload && (
+                <UploadModal
+                    onClose={() => setShowUpload(false)}
+                    token={user?.token} // 将 token 传递给 Modal 用于鉴权
+                />
+            )}
         </div>
     );
 }

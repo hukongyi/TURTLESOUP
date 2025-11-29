@@ -47,8 +47,14 @@ function Auth({ onLoginSuccess }) {
                 });
 
                 if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.detail || '注册失败');
+                    // === 修改开始 ===
+                    // 原代码: const data = await res.json();
+                    // 修正为: 增加 catch 处理，防止响应体为空时报错
+                    const data = await res.json().catch(() => ({}));
+
+                    // 抛出错误信息，如果没有 detail 字段，显示状态码以便调试
+                    throw new Error(data.detail || `注册失败 (Status: ${res.status})`);
+                    // === 修改结束 ===
                 }
 
                 alert('🎉 注册成功！正在自动切换到登录...');

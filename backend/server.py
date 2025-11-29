@@ -25,6 +25,21 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_community.callbacks import get_openai_callback
 
+import json  # 确保导入了 json
+import uuid  # 确保导入了 uuid
+from pathlib import Path  # 推荐使用 Path 处理路径
+
+PENDING_DIR = Path("pending_puzzles")
+PENDING_DIR.mkdir(exist_ok=True)
+
+
+class PuzzleUpload(BaseModel):
+    title: str
+    question: str
+    answer: str
+    note: Optional[str] = ""
+
+
 load_dotenv(dotenv_path=r"./.env", override=True)
 
 # --- 配置与常量 (New) ---
@@ -41,13 +56,14 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 MODEL_PRICING = {
+    "deepseek-ai/DeepSeek-V3.2-Exp": {"input": 0.2000, "output": 0.300},
+    "deepseek-ai/DeepSeek-V3.2-Exp-thinking": {"input": 0.2000, "output": 0.300},
     "gemini-2.5-flash": {"input": 0.3000, "output": 2.5200},
     "gemini-2.5-pro": {"input": 1.2500, "output": 10.00},
     "gemini-3-pro-preview": {"input": 2.0000, "output": 12.000},
     "gpt-4o": {"input": 5.0000, "output": 20.00},
     "gpt-5.1": {"input": 2.5000, "output": 20.00},
-    "deepseek-ai/DeepSeek-V3.2-Exp": {"input": 0.2000, "output": 0.300},
-    "deepseek-ai/DeepSeek-V3.2-Exp-thinking": {"input": 0.2000, "output": 0.300},
+    "claude-3-7-sonnet-latest": {"input": 4.5000, "output": 22.5000},
 }
 
 
@@ -607,6 +623,43 @@ async def get_puzzles():
                 print(f"Error reading {filename}: {e}")
 
     return puzzles
+
+
+@app.post("/upload_puzzle")
+async def upload_puzzle(
+    puzzle: PuzzleUpload,
+    # 👇 关键点：这里通过依赖注入 read_users_me，自动从 Token 解析出当前用户对象
+    current_user: dict = Depends(read_users_me),
+):
+    try:
+        file_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        data_to_save = {
+            "id": file_id,
+            "title": puzzle.title,
+            "question": puzzle.question,
+            "answer": puzzle.answer,
+            "note": puzzle.note,
+            # 👇 核心代码：直接从解析出的用户信息中获取用户名
+            # 这样用户无法伪造身份，必须是登录的那个账号
+            "submitter": current_user["username"],
+            "status": "pending",
+            "timestamp": timestamp,
+        }
+
+        # 生成文件名时也带上用户名，方便你整理文件
+        filename = f"{int(datetime.now().timestamp())}_{current_user['username']}_{file_id[:8]}.json"
+        file_path = PENDING_DIR / filename
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data_to_save, f, ensure_ascii=False, indent=4)
+
+        return {"status": "success", "message": "上传成功", "file_id": file_id}
+
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
