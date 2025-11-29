@@ -9,3 +9,4 @@ passlib[bcrypt]
 python-jose
 python-multipart
 gunicorn
+langchain_community
