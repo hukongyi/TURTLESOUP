@@ -617,7 +617,9 @@ input[type="text"]:focus {
 
   /* 隐藏非必要的监控面板以节省空间，或者将其缩小 */
   .puzzle-section>div:last-child {
-    display: none;
+    padding: 5px;
+    font-size: 0.7rem;
+    /* display: none; */
     /* 手机端暂时隐藏 Token 监控，太占地儿 */
     /* 如果想保留，可以改为 padding: 5px; font-size: 0.7rem; */
   }
