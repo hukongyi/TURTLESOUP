@@ -13,6 +13,7 @@ function Game({ puzzle, onBack, model }) {
     // 控制手机端汤面面板的显示状态
     const [showMobilePuzzle, setShowMobilePuzzle] = useState(false);
 
+    // 统计数据
     const [stats, setStats] = useState({
         lastTokens: 0,
         lastCost: 0.0,
@@ -22,9 +23,13 @@ function Game({ puzzle, onBack, model }) {
     const threadIdRef = useRef(uuidv4());
     const chatEndRef = useRef(null);
 
-    // 自动滚动到底部
+    // === 修复的核心：自动滚动逻辑 ===
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // block: "nearest" 是防止页面整体下滑的关键
+        chatEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
     }, [messages]);
 
     // 初始化游戏
@@ -140,7 +145,8 @@ function Game({ puzzle, onBack, model }) {
                     color: '#94a3b8',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '8px',
+                    textAlign: 'left' // 强制左对齐
                 }}>
                     <div style={{
                         color: 'var(--accent)',
@@ -182,7 +188,7 @@ function Game({ puzzle, onBack, model }) {
                 <div className="chat-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
 
-                        {/* 1. [新增] 移动端专属：退出按钮 (红色) */}
+                        {/* 1. 移动端专属：退出按钮 (红色) */}
                         <button
                             className="mobile-toggle-btn mobile-back"
                             onClick={onBack}
