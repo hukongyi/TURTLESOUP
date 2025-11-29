@@ -19,7 +19,7 @@ from jose import JWTError, jwt
 
 # Langchain imports... (保留你原有的导入)
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -289,7 +289,27 @@ def host_node(state: GameState):
     """主持人回答节点"""
     current_history_msgs = state.get("history", [])
     summary = state.get("summary", "暂无信息")
-    selected_model = state.get("model", "gpt-3.5-turbo")  # 获取用户选择的模型
+    # 使用 .get() 设置默认值，防止 KeyError
+    selected_model = state.get("model", "gpt-3.5-turbo")
+    turn_count = state.get("turn_count", 0)
+
+    # --- 关键修复：检查状态是否丢失 ---
+    # 如果 story 不存在，说明服务器重启过，内存中的 thread_id 丢失
+    story = state.get("story")
+    truth = state.get("truth")
+
+    if not story or not truth:
+        print(f"⚠️ Error: State missing for thread. Likely due to server restart.")
+        return {
+            "history": current_history_msgs
+            + [
+                AIMessage(
+                    content="⚠️ **系统连接中断** \n\n服务器可能刚刚进行了更新或重启，导致当前会话记忆丢失。请点击页面上方的 **[刷新]** 或 **[← 返回大厅]** 重新开始游戏。"
+                )
+            ],
+            "turn_count": 0,
+        }
+    # --------------------------------
 
     if not current_history_msgs:
         return {}
@@ -297,7 +317,7 @@ def host_node(state: GameState):
     last_message = current_history_msgs[-1]
     user_question = last_message.content
 
-    # 2. 提取之前的对话作为上下文 (排除掉最新这一条用户提问)
+    # 2. 提取之前的对话作为上下文
     previous_msgs = current_history_msgs[:-1]
     recent_history_text = ""
     display_msgs = previous_msgs[-20:] if len(previous_msgs) > 20 else previous_msgs
@@ -309,47 +329,64 @@ def host_node(state: GameState):
             recent_history_text += f"{role}: {msg.content}\n"
 
     # 1. 动态获取 LLM
-    llm_instance = create_llm_instance(selected_model)
+    try:
+        llm_instance = create_llm_instance(selected_model)
+    except Exception as e:
+        # 处理模型初始化失败的情况
+        return {
+            "history": current_history_msgs
+            + [AIMessage(content=f"❌ 模型初始化失败: {str(e)}")],
+            "turn_count": turn_count,
+        }
 
     prompt = ChatPromptTemplate.from_template(HOST_PROMPT)
     chain = prompt | llm_instance
 
-    print(f"\n--- Turn {state['turn_count'] + 1} [{selected_model}] ---")
+    # 这里原本报错的地方，现在使用了安全的 turn_count 变量
+    print(f"\n--- Turn {turn_count + 1} [{selected_model}] ---")
     print(f"User Question: {user_question}")
 
     # 2. 使用 Callback 捕获 Token
-    with get_openai_callback() as cb:
-        response = chain.invoke(
-            {
-                "story": state["story"],
-                "truth": state["truth"],
-                "summary": summary,
-                "recent_history": recent_history_text,
-                "user_question": user_question,
-            }
-        )
+    try:
+        with get_openai_callback() as cb:
+            response = chain.invoke(
+                {
+                    "story": story,  # 使用上面安全获取的变量
+                    "truth": truth,  # 使用上面安全获取的变量
+                    "summary": summary,
+                    "recent_history": recent_history_text,
+                    "user_question": user_question,
+                }
+            )
 
-        # 3. 计算实际费用 (LangChain 自带计算通常基于官方价，如果你用中转且价格不同，可手动算)
-        # 这里演示手动计算以匹配 MODEL_PRICING 配置
-        pricing = MODEL_PRICING.get(selected_model, {"input": 0, "output": 0})
-        input_cost = (cb.prompt_tokens / 1_000_000) * pricing["input"]
-        output_cost = (cb.completion_tokens / 1_000_000) * pricing["output"]
-        total_cost = input_cost + output_cost
+            # 3. 计算实际费用
+            pricing = MODEL_PRICING.get(selected_model, {"input": 0, "output": 0})
+            input_cost = (cb.prompt_tokens / 1_000_000) * pricing["input"]
+            output_cost = (cb.completion_tokens / 1_000_000) * pricing["output"]
+            total_cost = input_cost + output_cost
 
-        print(f"Host Reply: {response.content}")
-        print(
-            f"Tokens: {cb.total_tokens} (In: {cb.prompt_tokens}, Out: {cb.completion_tokens})"
-        )
-        print(f"Cost: ${total_cost:.6f}")
+            print(f"Host Reply: {response.content}")
+            print(
+                f"Tokens: {cb.total_tokens} (In: {cb.prompt_tokens}, Out: {cb.completion_tokens})"
+            )
+            print(f"Cost: ${total_cost:.6f}")
 
-    new_history = current_history_msgs + [response]
+        new_history = current_history_msgs + [response]
 
-    return {
-        "history": new_history,
-        "turn_count": state["turn_count"] + 1,
-        "last_cost": total_cost,  # 更新状态
-        "last_tokens": cb.total_tokens,
-    }
+        return {
+            "history": new_history,
+            "turn_count": turn_count + 1,
+            "last_cost": total_cost,
+            "last_tokens": cb.total_tokens,
+        }
+
+    except Exception as e:
+        print(f"LLM Invocation Error: {e}")
+        return {
+            "history": current_history_msgs
+            + [AIMessage(content="🤖 主持人暂时掉线了（LLM调用错误），请重试。")],
+            "turn_count": turn_count,
+        }
 
 
 def summarize_node(state: GameState):
