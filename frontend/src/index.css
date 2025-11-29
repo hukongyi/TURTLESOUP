@@ -1,0 +1,636 @@
+/* src/index.css */
+
+:root {
+  --bg-color: #0f172a;
+  --panel-bg: rgba(30, 41, 59, 0.6);
+  --card-hover: rgba(45, 55, 72, 0.8);
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --accent: #f59e0b;
+  --accent-glow: rgba(245, 158, 11, 0.3);
+  --user-msg-bg: #1e293b;
+  --ai-msg-bg: rgba(245, 158, 11, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  background-color: var(--bg-color);
+  background-image: radial-gradient(circle at 10% 20%, rgba(20, 30, 60, 1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(40, 20, 40, 1) 0%, transparent 40%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* 防止横向滚动 */
+}
+
+/* === React 特有适配 === */
+/* 必须让 root 容器撑满高度，否则 flex 布局的居中效果会失效 */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 这是一个包裹 App 的容器，用于替代原来直接操作 body 的 flex 布局 */
+.app-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* --- Markdown 内容样式适配 --- */
+.msg-ai {
+  word-wrap: break-word;
+}
+
+.msg-ai p {
+  margin-bottom: 0.8em;
+}
+
+.msg-ai p:last-child {
+  margin-bottom: 0;
+}
+
+.msg-ai ul,
+.msg-ai ol {
+  margin-left: 1.5em;
+  margin-bottom: 0.8em;
+}
+
+.msg-ai strong {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.msg-ai pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.8em;
+  font-family: monospace;
+}
+
+.msg-ai code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.msg-ai blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+  margin: 0.8em 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* --- 1. 菜单大厅 (Menu) 样式 --- */
+.menu-container {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease;
+  animation: fadeIn 0.5s ease;
+}
+
+.menu-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: fadeIn 0.8s ease;
+}
+
+.menu-title {
+  font-size: 3rem;
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow);
+  letter-spacing: 5px;
+  margin-bottom: 10px;
+}
+
+.menu-subtitle {
+  color: var(--text-secondary);
+  font-family: sans-serif;
+  font-size: 1rem;
+}
+
+.refresh-btn {
+  margin-top: 20px;
+  padding: 10px 25px;
+  border-radius: 50px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.refresh-btn:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.menu-card {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 220px;
+}
+
+.menu-card:hover {
+  transform: translateY(-8px);
+  background: var(--card-hover);
+  border-color: var(--accent);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.menu-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.menu-card p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.menu-card::after {
+  content: "PLAY";
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 0.8rem;
+  opacity: 0;
+  color: var(--accent);
+  transform: translateX(10px);
+  transition: all 0.3s;
+}
+
+.menu-card:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+/* --- 2. 游戏界面 (Game) 样式 --- */
+.game-container {
+  /* 在 React 中我们通过条件渲染控制显示，但为了动画效果，这里保持 flex */
+  display: flex;
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  gap: 20px;
+  /* 初始状态 */
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* 组件挂载后添加这个类名触发动画 */
+.game-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 左侧：题目卡片 */
+.puzzle-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 500px;
+}
+
+.puzzle-card {
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.puzzle-title {
+  font-size: 1.5rem;
+  color: var(--accent);
+  letter-spacing: 1px;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+}
+
+.puzzle-content {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  min-height: 100px;
+}
+
+.controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: sans-serif;
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-reveal {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-reveal:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+.btn-back {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+.btn-back:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* 汤底区域 */
+.answer-section {
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+  /* 默认隐藏，React 中通过 JSX 条件渲染或者类名控制 */
+  border: 1px solid var(--accent);
+  animation: fadeIn 0.5s;
+}
+
+.answer-section.show {
+  display: block;
+}
+
+/* 右侧：聊天区域 */
+.chat-section {
+  flex: 2;
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 85vh;
+}
+
+.chat-header {
+  padding: 15px 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  font-family: sans-serif;
+}
+
+.message {
+  max-width: 80%;
+  padding: 12px 18px;
+  border-radius: 18px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: var(--user-msg-bg);
+  border-bottom-right-radius: 4px;
+}
+
+.msg-ai {
+  align-self: flex-start;
+  background: var(--ai-msg-bg);
+  border-bottom-left-radius: 4px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fff;
+}
+
+.msg-system {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 10px 0;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 5px 15px;
+  border-radius: 20px;
+}
+
+.chat-input-area {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  gap: 10px;
+}
+
+input[type="text"] {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  border-radius: 50px;
+  color: white;
+  outline: none;
+  transition: all 0.3s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-send {
+  background: var(--accent);
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* 动画 */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 加载条 */
+.typing-indicator {
+  display: none;
+  /* React 中通过 JSX 条件渲染控制 */
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 15px;
+  border-radius: 15px;
+  margin-bottom: 10px;
+}
+
+.typing-indicator span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-secondary);
+  border-radius: 50%;
+  margin: 0 2px;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 900px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .game-container {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+    max-height: none;
+  }
+
+  .chat-section,
+  .puzzle-card {
+    height: 600px;
+    max-height: none;
+  }
+
+  body {
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* src/index.css */
+/* ...保留你原本的所有内容，只修改/添加以下部分... */
+
+/* --- 找到 input[type="text"] 的部分，修改如下 --- */
+/* 同时支持 text 和 password 输入框 */
+input[type="text"],
+input[type="password"] {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  border-radius: 50px;
+  color: white;
+  outline: none;
+  transition: all 0.3s;
+  width: 100%;
+  /* 确保填满容器 */
+  font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* --- 新增：Auth 组件专用的样式 --- */
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  /* 确保在屏幕中间 */
+  width: 100%;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  /* 继承 menu-card 的所有酷炫效果，但取消 hover 位移，避免输入时乱动 */
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.8s ease;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 1.8rem;
+  color: var(--accent);
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-left: 10px;
+}
+
+.auth-toggle {
+  text-align: center;
+  margin-top: 25px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.auth-toggle span {
+  color: var(--accent);
+  cursor: pointer;
+  margin-left: 8px;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.auth-toggle span:hover {
+  color: #fff;
+}
+
+.error-msg {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  text-align: center;
+}

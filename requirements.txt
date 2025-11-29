@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+langchain-openai
+langchain-core
+langgraph
+sqlalchemy
+passlib[bcrypt]
+python-jose
+python-multipart
+gunicorn
