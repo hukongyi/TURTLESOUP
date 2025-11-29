@@ -61,7 +61,7 @@ def init_invite_codes():
     db = SessionLocal()
     try:
         if db.query(InviteCode).count() == 0:
-            default_codes = ["TURTLE2024", "SOUP888", "ADMIN123"]
+            default_codes = ["TURTLE_HKY"]
             print(f"\n--- 初始化注册码 ---")
             for code in default_codes:
                 db_code = InviteCode(code=code)
