@@ -15,6 +15,7 @@ CORE_ROOT_FILES = {
 # 2. 明确指定要扫描的目录 (相对路径)
 CORE_DIRS = [
     os.path.join("frontend", "src"),  # 前端核心代码
+    os.path.join("backend"),  # 后端核心代码
     # os.path.join("puzzles"),        # 谜题数据 (下面有特殊逻辑只取第一个)
 ]
 
