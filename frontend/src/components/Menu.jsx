@@ -45,7 +45,7 @@ function Menu({ onStartGame, user, onLogout }) {
 
             <header className="menu-header">
                 <div className="menu-title">TURTLE SOUP</div>
-                <div className="menu-subtitle">侧向思维推理挑战 // 数据库 v1.0</div>
+                <div className="menu-subtitle">海龟汤 v0.0.1</div>
 
                 <div className="menu-actions" style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '30px' }}>
                     <button className="refresh-btn" onClick={refreshPuzzles}>
