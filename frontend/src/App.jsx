@@ -4,12 +4,15 @@ import Menu from './components/Menu';
 import Game from './components/Game';
 import Auth from './components/Auth';
 import './index.css';
+import { AVAILABLE_MODELS } from './data'; // 导入模型列表以设置默认值
 
 function App() {
-  // 核心修改：默认 view 取决于是否有本地存储的 token
   const [view, setView] = useState('loading'); // 增加一个 loading 状态防止闪烁
   const [currentPuzzle, setCurrentPuzzle] = useState(null);
   const [user, setUser] = useState(null);
+
+  // 新增：模型选择状态，默认选择列表中的第一个，或者指定一个默认值
+  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0]?.id || 'gemini-2.5-flash');
 
   useEffect(() => {
     // 页面加载时检查登录状态
@@ -61,12 +64,16 @@ function App() {
           onStartGame={handleStartGame}
           user={user}
           onLogout={handleLogout}
+          // 传递模型控制 Props
+          selectedModel={selectedModel}
+          onSelectModel={setSelectedModel}
         />
       )}
 
       {view === 'game' && currentPuzzle && (
         <Game
           puzzle={currentPuzzle}
+          model={selectedModel} // 将选中的模型传递给游戏组件
           onBack={() => setView('menu')}
         />
       )}

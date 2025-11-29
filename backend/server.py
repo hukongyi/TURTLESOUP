@@ -23,6 +23,7 @@ from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_community.callbacks import get_openai_callback
 
 load_dotenv(dotenv_path=r"./.env", override=True)
 
@@ -38,6 +39,16 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+MODEL_PRICING = {
+    "gemini-2.5-flash": {"input": 0.3000, "output": 2.5200},
+    "gemini-2.5-pro": {"input": 1.2500, "output": 10.00},
+    "gemini-3-pro-preview": {"input": 2.0000, "output": 12.000},
+    "gpt-4o": {"input": 5.0000, "output": 20.00},
+    "gpt-5.1": {"input": 2.5000, "output": 20.00},
+    "deepseek-ai/DeepSeek-V3.2-Exp": {"input": 0.2000, "output": 0.300},
+    "deepseek-ai/DeepSeek-V3.2-Exp-thinking": {"input": 0.2000, "output": 0.300},
+}
 
 
 class User(Base):
@@ -125,6 +136,7 @@ class InitRequest(BaseModel):
     thread_id: str
     story: str
     truth: str
+    model: str = "gemini-2.5-flash"
 
 
 class ChatRequest(BaseModel):
@@ -132,17 +144,18 @@ class ChatRequest(BaseModel):
     message: str
 
 
-# --- LLM Setup (保留原有逻辑) ---
-def get_llm():
-    model = os.environ.get("LLM_MODEL")
+def create_llm_instance(model_name: str):
     api_key = os.environ.get("OPENAI_API_KEY")
     base_url = os.environ.get("BASE_URL")
     if not api_key or not base_url:
         raise ValueError("Check .env")
-    return ChatOpenAI(model=model, api_key=api_key, base_url=base_url, temperature=0.3)
+
+    # 动态实例化
+    return ChatOpenAI(
+        model=model_name, api_key=api_key, base_url=base_url, temperature=0.3
+    )
 
 
-llm = get_llm()
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -264,6 +277,9 @@ class GameState(TypedDict):
     history: List[BaseMessage]
     summary: str
     turn_count: int
+    model: str  # <--- 存入 State
+    last_cost: float  # <--- 存入单次费用
+    last_tokens: int  # <--- 存入单次Token
 
 
 # --- 3. 节点逻辑 ---
@@ -273,8 +289,8 @@ def host_node(state: GameState):
     """主持人回答节点"""
     current_history_msgs = state.get("history", [])
     summary = state.get("summary", "暂无信息")
+    selected_model = state.get("model", "gpt-3.5-turbo")  # 获取用户选择的模型
 
-    # 1. 提取最新的问题
     if not current_history_msgs:
         return {}
 
@@ -283,11 +299,8 @@ def host_node(state: GameState):
 
     # 2. 提取之前的对话作为上下文 (排除掉最新这一条用户提问)
     previous_msgs = current_history_msgs[:-1]
-
     recent_history_text = ""
-    # 只取最近 6 条对话作为上下文，避免 token 过多
-    display_msgs = previous_msgs[-6:] if len(previous_msgs) > 6 else previous_msgs
-
+    display_msgs = previous_msgs[-20:] if len(previous_msgs) > 20 else previous_msgs
     if not display_msgs:
         recent_history_text = "（暂无近期对话）"
     else:
@@ -295,30 +308,48 @@ def host_node(state: GameState):
             role = "用户" if isinstance(msg, HumanMessage) else "主持人"
             recent_history_text += f"{role}: {msg.content}\n"
 
-    # 调用 LLM
-    prompt = ChatPromptTemplate.from_template(HOST_PROMPT)
-    chain = prompt | llm
+    # 1. 动态获取 LLM
+    llm_instance = create_llm_instance(selected_model)
 
-    # 打印调试信息
-    print(f"\n--- Turn {state['turn_count'] + 1} ---")
+    prompt = ChatPromptTemplate.from_template(HOST_PROMPT)
+    chain = prompt | llm_instance
+
+    print(f"\n--- Turn {state['turn_count'] + 1} [{selected_model}] ---")
     print(f"User Question: {user_question}")
 
-    response = chain.invoke(
-        {
-            "story": state["story"],
-            "truth": state["truth"],
-            "summary": summary,
-            "recent_history": recent_history_text,
-            "user_question": user_question,
-        }
-    )
+    # 2. 使用 Callback 捕获 Token
+    with get_openai_callback() as cb:
+        response = chain.invoke(
+            {
+                "story": state["story"],
+                "truth": state["truth"],
+                "summary": summary,
+                "recent_history": recent_history_text,
+                "user_question": user_question,
+            }
+        )
 
-    print(f"Host Reply: {response.content}")
+        # 3. 计算实际费用 (LangChain 自带计算通常基于官方价，如果你用中转且价格不同，可手动算)
+        # 这里演示手动计算以匹配 MODEL_PRICING 配置
+        pricing = MODEL_PRICING.get(selected_model, {"input": 0, "output": 0})
+        input_cost = (cb.prompt_tokens / 1_000_000) * pricing["input"]
+        output_cost = (cb.completion_tokens / 1_000_000) * pricing["output"]
+        total_cost = input_cost + output_cost
 
-    # 更新历史：当前历史(含用户提问) + AI回复
+        print(f"Host Reply: {response.content}")
+        print(
+            f"Tokens: {cb.total_tokens} (In: {cb.prompt_tokens}, Out: {cb.completion_tokens})"
+        )
+        print(f"Cost: ${total_cost:.6f}")
+
     new_history = current_history_msgs + [response]
 
-    return {"history": new_history, "turn_count": state["turn_count"] + 1}
+    return {
+        "history": new_history,
+        "turn_count": state["turn_count"] + 1,
+        "last_cost": total_cost,  # 更新状态
+        "last_tokens": cb.total_tokens,
+    }
 
 
 def summarize_node(state: GameState):
@@ -469,16 +500,58 @@ async def read_users_me(
 @app.post("/init")
 async def init_game(req: InitRequest):
     config = {"configurable": {"thread_id": req.thread_id}}
+
+    # 校验模型是否存在，不存在则回退
+    model_to_use = req.model if req.model in MODEL_PRICING else "gpt-3.5-turbo"
+
     initial_state = {
         "story": req.story,
         "truth": req.truth,
         "history": [],
         "summary": "游戏开始。",
         "turn_count": 0,
+        "model": model_to_use,  # 保存模型选择
+        "last_cost": 0.0,
+        "last_tokens": 0,
     }
-    print(f"New Game Initialized: {req.story[:20]}...")
+    print(f"New Game Initialized with Model: {model_to_use}")
     app_graph.update_state(config, initial_state)
-    return {"status": "ok", "message": "Game initialized"}
+    return {"status": "ok", "message": "Game initialized", "model": model_to_use}
+
+
+@app.post("/chat")
+async def chat(req: ChatRequest):
+    config = {"configurable": {"thread_id": req.thread_id}}
+
+    current_state_dict = app_graph.get_state(config).values
+    current_history = current_state_dict.get("history", [])
+
+    new_message = HumanMessage(content=req.message)
+    inputs = {"history": current_history + [new_message]}
+
+    ai_reply = ""
+
+    # 执行图
+    async for event in app_graph.astream(inputs, config=config):
+        if "host" in event:
+            msgs = event["host"]["history"]
+            if msgs:
+                ai_reply = msgs[-1].content
+
+    # 获取最新状态 (包含了 host_node 计算的 cost)
+    final_state = app_graph.get_state(config).values
+
+    return {
+        "reply": ai_reply,
+        "summary": final_state.get("summary", ""),
+        "turn_count": final_state.get("turn_count", 0),
+        # 返回费用信息
+        "cost_data": {
+            "tokens": final_state.get("last_tokens", 0),
+            "cost": final_state.get("last_cost", 0.0),
+            "model": final_state.get("model", "unknown"),
+        },
+    }
 
 
 @app.get("/puzzles")
@@ -508,38 +581,6 @@ async def get_puzzles():
                 print(f"Error reading {filename}: {e}")
 
     return puzzles
-
-
-@app.post("/chat")
-async def chat(req: ChatRequest):
-    config = {"configurable": {"thread_id": req.thread_id}}
-
-    # 1. 获取当前状态
-    current_state_dict = app_graph.get_state(config).values
-    current_history = current_state_dict.get("history", [])
-
-    # 2. 构建输入
-    new_message = HumanMessage(content=req.message)
-    # 注意：LangGraph 会自动处理状态合并，我们传入包含新消息的历史列表
-    inputs = {"history": current_history + [new_message]}
-
-    ai_reply = ""
-
-    # 3. 流式执行并捕获输出
-    async for event in app_graph.astream(inputs, config=config):
-        if "host" in event:
-            msgs = event["host"]["history"]
-            if msgs:
-                ai_reply = msgs[-1].content
-
-    # 4. 获取最终状态
-    final_state = app_graph.get_state(config).values
-
-    return {
-        "reply": ai_reply,
-        "summary": final_state.get("summary", ""),
-        "turn_count": final_state.get("turn_count", 0),
-    }
 
 
 if __name__ == "__main__":
